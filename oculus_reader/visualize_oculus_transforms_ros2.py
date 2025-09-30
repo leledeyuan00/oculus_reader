@@ -11,7 +11,7 @@ class OculusReaderNode(Node):
         super().__init__('oculus_reader')
         self.oculus_reader = OculusReader()
         self.br = tf2_ros.TransformBroadcaster(self)
-        self.timer = self.create_timer(0.05, self.timer_callback)  # 1 Hz loop
+        self.timer = self.create_timer(0.05, self.timer_callback)
 
     def timer_callback(self):
         transformations, buttons = self.oculus_reader.get_transformations_and_buttons()
