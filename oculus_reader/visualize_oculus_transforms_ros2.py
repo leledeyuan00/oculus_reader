@@ -9,7 +9,7 @@ import numpy as np
 from rclpy import time, clock
 
 from std_srvs.srv import SetBool
-from example_interfaces.srv import AddTwoInts
+from std_msgs.msg import Float64MultiArray
 
 # For spinning
 from rclpy.executors import SingleThreadedExecutor
@@ -25,22 +25,25 @@ class OculusReaderNode(Node):
 
         self.clock = rclpy.clock.Clock()
         self.last_time = self.clock.now()
-        self.last_x_r = 0.0
-        self.last_x_r_different_time = self.clock.now()
 
+        # publisher
+        self.robotiq_l = self.create_publisher(Float64MultiArray, '/L_gripper_forward_position_controller/command', 10)
+        self.robotiq_r = self.create_publisher(Float64MultiArray, '/R_gripper_forward_position_controller/command', 10)
+
+        # service
         self.tele_cli = self.create_client(SetBool, '/teleop_start')
         self.button_count_poll= 0
 
         # Create a thread to run the main loop
         self.rate = self.create_rate(100)  # 90 Hz
-        self.thread = Thread(target=self.timer_callback)
+        self.thread = Thread(target=self.loop)
         self.thread.start()
 
         self.button_info_init = False
         self.button_triggered_dict = {}
         
 
-    def timer_callback(self):
+    def loop(self):
         while rclpy.ok():
             current_time = self.clock.now()
             self.last_time = current_time
@@ -94,7 +97,7 @@ class OculusReaderNode(Node):
                 self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
             else:
                 self.get_logger().error('Service not available')
-        if not buttons['A'] and self.button_triggered_dict['A']:
+        elif not buttons['A'] and self.button_triggered_dict['A']:
             self.button_triggered_dict['A'] = False
 
         if buttons['B'] and not self.button_triggered_dict['B']:
@@ -106,26 +109,60 @@ class OculusReaderNode(Node):
                 self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
             else:
                 self.get_logger().error('Service not available')
-        if not buttons['B'] and self.button_triggered_dict['B']:
+        elif not buttons['B'] and self.button_triggered_dict['B']:
             self.button_triggered_dict['B'] = False
 
         if buttons['X'] and not self.button_triggered_dict['X']:
             self.button_triggered_dict['X'] = True
             # for starting a new episode
-        if not buttons['X'] and self.button_triggered_dict['X']:
+        elif not buttons['X'] and self.button_triggered_dict['X']:
             self.button_triggered_dict['X'] = False
 
         if buttons['Y'] and not self.button_triggered_dict['Y']:
             self.button_triggered_dict['Y'] = True
             # for stopping and saving current episode
-        if not buttons['Y'] and self.button_triggered_dict['Y']:
+        elif not buttons['Y'] and self.button_triggered_dict['Y']:
             self.button_triggered_dict['Y'] = False
 
         if buttons['LJ'] and not self.button_triggered_dict['LJ']:
             self.button_triggered_dict['LJ'] = True
             # dispose current episode
-        if not buttons['LJ'] and self.button_triggered_dict['LJ']:
+        elif not buttons['LJ'] and self.button_triggered_dict['LJ']:
             self.button_triggered_dict['LJ'] = False
+
+        # gripper control
+        if buttons['LTr'] and not self.button_triggered_dict['LTr']:
+            self.button_triggered_dict['LTr'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.8]  # close
+            self.robotiq_l.publish(msg)
+        elif not buttons['LTr'] and self.button_triggered_dict['LTr']:
+            self.button_triggered_dict['LTr'] = False
+
+        if buttons['LG'] and not self.button_triggered_dict['LG']:
+            self.button_triggered_dict['LG'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.0]  # open
+            self.robotiq_l.publish(msg)
+        elif not buttons['LG'] and self.button_triggered_dict['LG']:
+            self.button_triggered_dict['LG'] = False
+
+        if buttons['RTr'] and not self.button_triggered_dict['RTr']:
+            self.button_triggered_dict['RTr'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.8]  # close
+            self.robotiq_r.publish(msg)
+        elif not buttons['RTr'] and self.button_triggered_dict['RTr']:
+            self.button_triggered_dict['RTr'] = False
+
+        if buttons['RG'] and not self.button_triggered_dict['RG']:
+            self.button_triggered_dict['RG'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.0]  # open
+            self.robotiq_r.publish(msg)
+        elif not buttons['RG'] and self.button_triggered_dict['RG']:
+            self.button_triggered_dict['RG'] = False
+
 
     def publish_transform(self, transform, name):
         translation = transform[:3, 3]
