@@ -1,0 +1,8 @@
+package com.rail.oculus.teleop;
+
+public final class HapticBridge {
+    static {
+        try {System.loadLibrary("vrinputstandard");} catch (Throwable ignored){}
+    }
+    public static native void nativePostSimple(int handId, float amplitute, int durationMs);
+}

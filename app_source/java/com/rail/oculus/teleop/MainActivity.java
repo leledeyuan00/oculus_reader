@@ -25,4 +25,10 @@ public class MainActivity extends android.app.NativeActivity {
     System.loadLibrary("vrapi");
     System.loadLibrary("vrinputstandard");
   }
+
+  @Override
+  protected void onCreate(android.os.Bundle savedInstanceState){
+    super.onCreate(savedInstanceState);
+    HapticServer.start();
+  }
 }

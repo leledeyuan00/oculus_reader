@@ -1736,10 +1736,11 @@ bool ovrInputDeviceHandBase::Update(
 }
 
 void ovrInputDeviceHandBase::UpdateHaptics(ovrMobile* ovr, float displayTimeInSeconds) {
+
     if (!HasCapSimpleHaptics() && !HasCapBufferedHaptics()) {
         return;
     }
-
+    /*
     const DeviceHapticState& desiredState = GetRequestedHapticsState();
     const auto hapticMaxSamples = GetHapticSamplesMax();
     const auto hapticSampleDurationMs = GetHapticSampleDurationMS();
@@ -1808,6 +1809,14 @@ void ovrInputDeviceHandBase::UpdateHaptics(ovrMobile* ovr, float displayTimeInSe
             PreviousHapticState = {};
         }
     }
+   */
+    HapticSimple haptics = {0.0, 0};
+    if (IsLeftHand()){
+        haptics = Haptics_Queue_Left();
+    }else{
+        haptics = Haptics_Queue_Right();
+    }
+    vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), haptics.amp);
 }
 
 //==============================

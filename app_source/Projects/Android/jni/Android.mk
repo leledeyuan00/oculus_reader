@@ -16,6 +16,7 @@ LOCAL_C_INCLUDES 		:= 	$(LOCAL_PATH)/../../../../../SampleCommon/Src \
 LOCAL_SRC_FILES			:= 	../../../Src/main.cpp \
 							../../../Src/OculusTeleop.cpp \
 							../../../Src/Buttons.cpp \
+							../../../Src/HapticsBridge.cpp \
 
 
 # include default libraries

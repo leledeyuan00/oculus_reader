@@ -33,6 +33,8 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #include "Input/HandModel.h"
 #include "Input/Skeleton.h"
 
+#include "HapticsBridge.h"
+
 namespace OVRFW {
 
     class ovrLocale;
