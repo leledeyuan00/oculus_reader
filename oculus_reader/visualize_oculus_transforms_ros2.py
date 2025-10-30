@@ -7,8 +7,7 @@ import tf2_ros
 from geometry_msgs.msg import TransformStamped
 import numpy as np
 from rclpy import time, clock
-
-from std_srvs.srv import SetBool
+from std_srvs.srv import SetBool,Trigger
 from std_msgs.msg import Float64MultiArray
 
 # For spinning
@@ -31,20 +30,23 @@ class OculusReaderNode(Node):
         self.create_subscription(Float64MultiArray, '/R_haptic_intensity', self.right_haptic_callback, 10)
 
         # publisher
-        self.robotiq_l = self.create_publisher(Float64MultiArray, '/L_gripper_forward_position_controller/command', 10)
-        self.robotiq_r = self.create_publisher(Float64MultiArray, '/R_gripper_forward_position_controller/command', 10)
+        self.robotiq_l = self.create_publisher(Float64MultiArray, '/L_gripper_forward_position_controller/commands', 10)
+        self.robotiq_r = self.create_publisher(Float64MultiArray, '/R_gripper_forward_position_controller/commands', 10)
 
         # service
         self.tele_cli = self.create_client(SetBool, '/teleop_start')
+        self.dataset_record_cli = self.create_client(Trigger, '/start_recording')
+        self.dataset_stop_cli = self.create_client(SetBool, '/stop_recording')
+        self.phase_state_cli = self.create_client(Trigger, '/stage_up')
         self.button_count_poll= 0
+        self.button_info_init = False
+        self.button_triggered_dict = {}
 
         # Create a thread to run the main loop
-        self.rate = self.create_rate(100)  # 90 Hz
+        self.rate = self.create_rate(70)  # 90 Hz
         self.thread = Thread(target=self.loop)
         self.thread.start()
 
-        self.button_info_init = False
-        self.button_triggered_dict = {}
         
 
     def loop(self):
@@ -52,22 +54,39 @@ class OculusReaderNode(Node):
             current_time = self.clock.now()
             self.last_time = current_time
             transformations, buttons = self.oculus_reader.get_transformations_and_buttons()
-            if 'r' not in transformations:
-                continue
-            right_controller_pose = transformations['r']
-            left_controller_pose = transformations['l']
-            self.publish_transform(right_controller_pose, 'oculus_r')
-            self.publish_transform(left_controller_pose, 'oculus_l')
 
             self.button_funcs(buttons)
+            if 'r' not in transformations:
+                continue
+            if 'l' not in transformations:
+                continue
             
+            
+
+            right_controller_pose = transformations['r']
+            left_controller_pose = transformations['l']
+            tf_l, valid_l = self.publish_transform(right_controller_pose, 'oculus_r')
+            tf_r, valid_r = self.publish_transform(left_controller_pose, 'oculus_l')
+
+            if valid_l and valid_r:
+                self.br.sendTransform(tf_l)
+                self.br.sendTransform(tf_r)          
+            else:
+                self.get_logger().warning('Invalid transform detected, not publishing TF.')  
             self.rate.sleep()
 
     def button_funcs(self, buttons):
+        # early return if no A or X button info
+        if 'A' not in buttons:
+            return
+        if 'X' not in buttons:
+            return
+        
         if not self.button_info_init:
             for key in buttons.keys():
                 self.button_triggered_dict[key] = False
             self.button_info_init = True
+
 
         # keys: dict_keys([
         ## -- boolean values --
@@ -119,18 +138,38 @@ class OculusReaderNode(Node):
         if buttons['X'] and not self.button_triggered_dict['X']:
             self.button_triggered_dict['X'] = True
             # for starting a new episode
+            if self.dataset_record_cli.wait_for_service(timeout_sec=1.0):
+                req = Trigger.Request()
+                result = self.dataset_record_cli.call(req)
+                self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
+            else:
+                self.get_logger().error('Service not available')
         elif not buttons['X'] and self.button_triggered_dict['X']:
             self.button_triggered_dict['X'] = False
 
         if buttons['Y'] and not self.button_triggered_dict['Y']:
             self.button_triggered_dict['Y'] = True
             # for stopping and saving current episode
+            if self.dataset_stop_cli.wait_for_service(timeout_sec=1.0):
+                req = SetBool.Request()
+                req.data = True
+                result = self.dataset_stop_cli.call(req)
+                self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
+            else:
+                self.get_logger().error('Service not available')
         elif not buttons['Y'] and self.button_triggered_dict['Y']:
             self.button_triggered_dict['Y'] = False
 
         if buttons['LJ'] and not self.button_triggered_dict['LJ']:
             self.button_triggered_dict['LJ'] = True
             # dispose current episode
+            if self.dataset_stop_cli.wait_for_service(timeout_sec=1.0):
+                req = SetBool.Request()
+                req.data = False
+                result = self.dataset_stop_cli.call(req)
+                self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
+            else:
+                self.get_logger().error('Service not available')
         elif not buttons['LJ'] and self.button_triggered_dict['LJ']:
             self.button_triggered_dict['LJ'] = False
 
@@ -148,6 +187,7 @@ class OculusReaderNode(Node):
             msg = Float64MultiArray()
             msg.data = [0.0]  # open
             self.robotiq_l.publish(msg)
+
         elif not buttons['LG'] and self.button_triggered_dict['LG']:
             self.button_triggered_dict['LG'] = False
 
@@ -167,6 +207,18 @@ class OculusReaderNode(Node):
         elif not buttons['RG'] and self.button_triggered_dict['RG']:
             self.button_triggered_dict['RG'] = False
 
+        if buttons['rightJS'][0] > 0.8 and not self.button_triggered_dict['rightJS']:
+            self.button_triggered_dict['rightJS'] = True
+            # phase up
+            if self.phase_state_cli.wait_for_service(timeout_sec=1.0):
+                req = Trigger.Request()
+                result = self.phase_state_cli.call(req)
+                self.get_logger().info(f'Result of service call: {result.success}, message: {result.message}')
+            else:
+                self.get_logger().error('Service not available')
+        elif buttons['rightJS'][0] < 0.2 and self.button_triggered_dict['rightJS']:
+            self.button_triggered_dict['rightJS'] = False
+
 
     def publish_transform(self, transform, name):
         translation = transform[:3, 3]
@@ -177,6 +229,12 @@ class OculusReaderNode(Node):
         t.transform.translation.x = -translation[2]
         t.transform.translation.y = -translation[0]
         t.transform.translation.z = translation[1]
+
+        rot_m = np.array([[transform[0][0], transform[0][1], transform[0][2],],
+                          [transform[1][0], transform[1][1], transform[1][2],],
+                          [transform[2][0], transform[2][1], transform[2][2]]])
+        if abs(rot_m.sum()) < 1e-6:
+            return t, False
         quat = quaternion_from_matrix(transform)
         quat = np.array([quat[1], quat[0], -quat[2], quat[3]])
         
@@ -192,7 +250,7 @@ class OculusReaderNode(Node):
         t.transform.rotation.y = quat[1]
         t.transform.rotation.z = quat[2]
         t.transform.rotation.w = quat[3]
-        self.br.sendTransform(t)
+        return t, True
 
     def left_haptic_callback(self, msg):
         intensity = msg.data[0]
