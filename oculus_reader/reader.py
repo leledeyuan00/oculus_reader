@@ -43,9 +43,9 @@ class OculusReader:
         self.haptic_amp_l = 0.0
         self.haptic_amp_r = 0.0
         # create two watchdogs that reset the haptic amplitudes to zero after some time
-        # self.haptic_reset_interval = 5.0  # seconds
-        # self.haptic_cmd_got_l = time.time()
-        # self.haptic_cmd_got_r = time.time()
+        self.haptic_reset_interval = 5.0  # seconds
+        self.haptic_cmd_got_l = time.time()
+        self.haptic_cmd_got_r = time.time()
         
         if run:
             self.run()
@@ -205,7 +205,7 @@ class OculusReader:
                         self.fps_counter.getAndPrintFPS()
                 
                 # Trigger haptics based on stored amplitudes
-                # self.reset_haptics() # reset if no command received recently to avoid continuous vibration
+                self.reset_haptics() # reset if no command received recently to avoid continuous vibration
                 self.haptic_client.send_haptics(amp_l=self.haptic_amp_l, amp_r=self.haptic_amp_r)
 
             except UnicodeDecodeError:
@@ -217,6 +217,7 @@ class OculusReader:
         """Set left hand haptic intensity ∈ [0,1]"""
         self.haptic_amp_l = max(0.0, min(1.0, float(intensity)))
         self.haptic_cmd_got_l = time.time()
+
     def set_haptic_right(self, intensity: float):
         """Set right hand haptic intensity ∈ [0,1]"""
         self.haptic_amp_r = max(0.0, min(1.0, float(intensity)))

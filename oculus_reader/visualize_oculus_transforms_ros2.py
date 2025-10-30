@@ -177,7 +177,7 @@ class OculusReaderNode(Node):
         if buttons['LTr'] and not self.button_triggered_dict['LTr']:
             self.button_triggered_dict['LTr'] = True
             msg = Float64MultiArray()
-            msg.data = [0.8]  # close
+            msg.data = [0.]  # close
             self.robotiq_l.publish(msg)
         elif not buttons['LTr'] and self.button_triggered_dict['LTr']:
             self.button_triggered_dict['LTr'] = False
@@ -191,7 +191,7 @@ class OculusReaderNode(Node):
         if buttons['RTr'] and not self.button_triggered_dict['RTr']:
             self.button_triggered_dict['RTr'] = True
             msg = Float64MultiArray()
-            msg.data = [0.8]  # close
+            msg.data = [0.]  # close
             self.robotiq_r.publish(msg)
         elif not buttons['RTr'] and self.button_triggered_dict['RTr']:
             self.button_triggered_dict['RTr'] = False
@@ -215,18 +215,18 @@ class OculusReaderNode(Node):
             self.button_triggered_dict['rightJS'] = False
 
         # Using LeftGrasp control left gripper to  decrease accidental triggering
-        if buttons['leftGrip'][0] > 0.8 and not self.button_triggered_dict['leftGrip']:
+        if buttons['leftGrip'][0] > 0.99 and not self.button_triggered_dict['leftGrip']:
             self.button_triggered_dict['leftGrip'] = True
             msg = Float64MultiArray()
-            msg.data = [0.0]  # open
+            msg.data = [0.8]  # close
             self.robotiq_l.publish(msg)
         elif buttons['leftGrip'][0] < 0.2 and self.button_triggered_dict['leftGrip']:
             self.button_triggered_dict['leftGrip'] = False
         
-        if buttons['rightGrip'][0] > 0.8 and not self.button_triggered_dict['rightGrip']:
+        if buttons['rightGrip'][0] > 0.99 and not self.button_triggered_dict['rightGrip']:
             self.button_triggered_dict['rightGrip'] = True
             msg = Float64MultiArray()
-            msg.data = [0.0]  # open
+            msg.data = [0.8]  # close
             self.robotiq_r.publish(msg)
         elif buttons['rightGrip'][0] < 0.2 and self.button_triggered_dict['rightGrip']:
             self.button_triggered_dict['rightGrip'] = False
