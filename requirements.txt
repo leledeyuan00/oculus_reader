@@ -2,3 +2,4 @@ numpy
 pure-python-adb
 pyyaml
 scipy
+transforms3d
