@@ -96,7 +96,7 @@ It is possible to stop the app from adb. Use: `adb shell am force-stop com.rail.
 If you find this work helpful, please consider citing it using the following reference:
 
 ```
-@misc{OrbikEbert2021OculusReader,
+@misc{Dayuan2025OculusReader,
   author = {Dayuan Chen},
   title = {Oculus Reader: Robotic Teleoperation Interface with Haptics feedback},
   year = {2025},
