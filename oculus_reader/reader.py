@@ -6,6 +6,7 @@ import time
 import os
 from ppadb.client import Client as AdbClient
 import sys
+from haptics_trigger import HapticClient
 
 def eprint(*args, **kwargs):
     RED = "\033[1;31m"  
@@ -37,6 +38,15 @@ class OculusReader:
 
         self.device = self.get_device()
         self.install(verbose=False)
+
+        self.haptic_client = HapticClient()
+        self.haptic_amp_l = 0.0
+        self.haptic_amp_r = 0.0
+        # create two watchdogs that reset the haptic amplitudes to zero after some time
+        # self.haptic_reset_interval = 5.0  # seconds
+        # self.haptic_cmd_got_l = time.time()
+        # self.haptic_cmd_got_r = time.time()
+        
         if run:
             self.run()
 
@@ -193,10 +203,31 @@ class OculusReader:
                         self.last_transforms, self.last_buttons = transforms, buttons
                     if self.print_FPS:
                         self.fps_counter.getAndPrintFPS()
+                
+                # Trigger haptics based on stored amplitudes
+                # self.reset_haptics() # reset if no command received recently to avoid continuous vibration
+                self.haptic_client.send_haptics(amp_l=self.haptic_amp_l, amp_r=self.haptic_amp_r)
+
             except UnicodeDecodeError:
                 pass
         file_obj.close()
         connection.close()
+
+    def set_haptic_left(self, intensity: float):
+        """Set left hand haptic intensity ∈ [0,1]"""
+        self.haptic_amp_l = max(0.0, min(1.0, float(intensity)))
+        self.haptic_cmd_got_l = time.time()
+    def set_haptic_right(self, intensity: float):
+        """Set right hand haptic intensity ∈ [0,1]"""
+        self.haptic_amp_r = max(0.0, min(1.0, float(intensity)))
+        self.haptic_cmd_got_r = time.time()
+
+    def reset_haptics(self):
+        """Reset both hand haptic intensities to zero"""
+        if time.time() - self.haptic_cmd_got_l > self.haptic_reset_interval:
+            self.haptic_amp_l = 0.0
+        if time.time() - self.haptic_cmd_got_r > self.haptic_reset_interval:
+            self.haptic_amp_r = 0.0
 
 
 def main():

@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="oculus_reader.app_source.Projects.Android">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-10-28T12:51:51.345759400Z">
+        <DropdownSelection timestamp="2025-10-29T07:23:52.264016751Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=2G0YC5ZH7C010L" />
@@ -12,6 +12,9 @@
           </Target>
         </DropdownSelection>
         <DialogSelection />
+      </SelectionState>
+      <SelectionState runConfigName="MainActivity">
+        <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
   </component>

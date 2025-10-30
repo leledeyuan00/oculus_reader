@@ -26,6 +26,10 @@ class OculusReaderNode(Node):
         self.clock = rclpy.clock.Clock()
         self.last_time = self.clock.now()
 
+        # subscriber
+        self.create_subscription(Float64MultiArray, '/L_haptic_intensity', self.left_haptic_callback, 10)
+        self.create_subscription(Float64MultiArray, '/R_haptic_intensity', self.right_haptic_callback, 10)
+
         # publisher
         self.robotiq_l = self.create_publisher(Float64MultiArray, '/L_gripper_forward_position_controller/command', 10)
         self.robotiq_r = self.create_publisher(Float64MultiArray, '/R_gripper_forward_position_controller/command', 10)
@@ -189,6 +193,14 @@ class OculusReaderNode(Node):
         t.transform.rotation.z = quat[2]
         t.transform.rotation.w = quat[3]
         self.br.sendTransform(t)
+
+    def left_haptic_callback(self, msg):
+        intensity = msg.data[0]
+        self.oculus_reader.set_haptic_left(intensity)
+    
+    def right_haptic_callback(self, msg):
+        intensity = msg.data[0]
+        self.oculus_reader.set_haptic_right(intensity)
 
 def main():
     rclpy.init()

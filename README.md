@@ -1,4 +1,4 @@
-# oculus_reader
+# oculus_reader with haptics feedback
 
 This repository provides the tool to read the position and pressed button from the Oculus Quest device.
 
@@ -19,7 +19,7 @@ Now you can clone this repository either with HTTPS or SSH.
 If you decide to use the HTTPS protocol, you can reduce the number of authentification prompts when pushing/pulling caused by Git LFS with:
 
 ```bash
-git config lfs.https://github.com/rail-berkeley/oculus_reader.git/info/lfs.locksverify false
+git config lfs.https://github.com/leledeyuan00/oculus_reader.git/info/lfs.locksverify false
 ```
 
 This command has to be run from the repository workspace.
@@ -94,6 +94,17 @@ It is possible to stop the app from adb. Use: `adb shell am force-stop com.rail.
 ## Citation
 
 If you find this work helpful, please consider citing it using the following reference:
+
+```
+@misc{OrbikEbert2021OculusReader,
+  author = {Dayuan Chen},
+  title = {Oculus Reader: Robotic Teleoperation Interface with Haptics feedback},
+  year = {2025},
+  url = {https://github.com/leledeyuan00/oculus_reader.git},
+  note = {Accessed: YYYY-MM-DD}
+}
+```
+
 ```
 @misc{OrbikEbert2021OculusReader,
   author = {Jedrzej Orbik, Frederik Ebert},
