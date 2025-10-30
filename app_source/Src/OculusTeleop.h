@@ -576,6 +576,13 @@ namespace OVRFW {
 
         bool IsDeviceTypeEnabled(const ovrInputDeviceBase& device) const;
         void RenderRunningFrame(const OVRFW::ovrApplFrameIn& in, OVRFW::ovrRendererOutput& out);
+
+        // saving controllers ID for safety trigger haptics
+        ovrDeviceID LeftControllerID;
+        ovrDeviceID RightControllerID;
+        bool LeftControllerFind;
+        bool RightControllerFind;
+        uint32_t StableFrames;
     };
 
 } // namespace OVRFW

@@ -853,6 +853,7 @@ bool ovrVrInputStandard::AppInit(const OVRFW::ovrAppContext* context) {
 
     SurfaceRender.Init();
 
+    StableFrames = 0;
     return true;
 }
 
@@ -961,6 +962,7 @@ OVRFW::ovrApplFrameOut ovrVrInputStandard::AppFrame(const OVRFW::ovrApplFrameIn&
     return OVRFW::ovrApplFrameOut();
 }
 
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "HAPTIC", __VA_ARGS__)
 std::string ovrVrInputStandard::TransformationMatrixToString(const OVR::Matrix4f& transformationMatrix) {
     const size_t size = 512;
     char buffer[size];
@@ -1012,7 +1014,28 @@ void ovrVrInputStandard::RenderRunningFrame(
                     continue;
                 }
             }
+
+            // saving controller IDs
+            bool isLeft = trDevice.IsLeftHand();
+            if((deviceType == ovrControllerType_TrackedRemote) && isLeft && !LeftControllerFind){
+                LeftControllerID = deviceID;
+                LeftControllerFind = true;
+            }
+            else if((deviceType == ovrControllerType_TrackedRemote) && !isLeft && !RightControllerFind){
+                RightControllerID = deviceID;
+                RightControllerFind = true;
+            }
         }
+    }
+    if (LeftControllerFind && RightControllerFind){
+        if ((FindInputDevice(LeftControllerID) < 0) || ((FindInputDevice(RightControllerID) < 0))){
+            // lost controllers
+            StableFrames = 0;
+        }else if(StableFrames < 100){
+            StableFrames++;
+        }
+    }else{
+        StableFrames = 0;
     }
 
     //------------------------------------------------------------------------------------------
@@ -1071,7 +1094,7 @@ void ovrVrInputStandard::RenderRunningFrame(
 
         if (!IsDeviceTypeEnabled(*device)) {
             ResetLaserPointer(*trDevice);
-            trDevice->ResetHaptics(GetSessionObject(), in.PredictedDisplayTime);
+//          trDevice->ResetHaptics(GetSessionObject(), in.PredictedDisplayTime); // I don't know why.. Dayuan(2025-10-30)
             continue;
         }
 
@@ -1092,7 +1115,9 @@ void ovrVrInputStandard::RenderRunningFrame(
             ++MenuPressCount;
         }
 
-        trDevice.UpdateHaptics(GetSessionObject(), in.PredictedDisplayTime);
+        if(StableFrames>10){
+            trDevice.UpdateHaptics(GetSessionObject(), in.PredictedDisplayTime);
+        }
 
         if (renderLaser) {
             Vector3f pointerStart(0.0f);
@@ -1740,9 +1765,7 @@ inline int period_from_amp(float amp) {
     // 50ms (amp=1) … 500ms (amp=0)
     return (int)round(50.0 + (1.0 - amp) * 450.0);
 }
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "HAPTIC", __VA_ARGS__)
 void ovrInputDeviceHandBase::UpdateHaptics(ovrMobile* ovr, float displayTimeInSeconds) {
-    static bool triggered_l = false, triggered_r = false;
     if (!HasCapSimpleHaptics() && !HasCapBufferedHaptics()) {
         return;
     }
@@ -1754,30 +1777,21 @@ void ovrInputDeviceHandBase::UpdateHaptics(ovrMobile* ovr, float displayTimeInSe
         const int period_ms = period_from_amp(haptics.amp_l);
         const double t_ms = round(fmod(displayTimeInSeconds, 10.0) * 1000.0);
         const int        r_ms      = (int)(fmod(t_ms,period_ms));
-        if (haptics.amp_l > 0.01 && !triggered_l){
-            // first trigger
-            triggered_l = true;
-        }else if (triggered_l){
-            if (r_ms >= 0 && r_ms <= 50){
-                vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), haptics.amp_l);
-            }else{
-                vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), 0.0);
-            }
-        }
 
+        if (r_ms >= 0 && r_ms <= 50){
+            vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), haptics.amp_l);
+        }else{
+            vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), 0.0);
+        }
     }else {
         const int period_ms = period_from_amp(haptics.amp_r);
         const double t_ms = round(fmod(displayTimeInSeconds, 10.0) * 1000.0);
         const int        r_ms      = (int)(fmod(t_ms,period_ms));
-        if (haptics.amp_r > 0.01 && !triggered_r){
-            // first trigger
-            triggered_r = true;
-        }else if(triggered_r){
-            if (r_ms >= 0 && r_ms <= 100){
-                vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), haptics.amp_r);
-            }else{
-                vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), 0.0);
-            }
+
+        if (r_ms >= 0 && r_ms <= 50){
+            vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), haptics.amp_r);
+        }else{
+            vrapi_SetHapticVibrationSimple(ovr, GetDeviceID(), 0.0);
         }
     }
 }

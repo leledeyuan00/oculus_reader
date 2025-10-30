@@ -49,6 +49,9 @@ class HapticClient:
     def _connect(self):
         if self.sock:
             return
+        # Ensure adb forward is set up
+        self.ensure_forward()
+        # Create socket
         s = socket.create_connection(self.addr, timeout=self.timeout)
         s.settimeout(self.timeout)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -65,7 +68,6 @@ class HapticClient:
             self._connect()
             self.sock.sendall(data)
         except OSError as e:
-            # 断了就重连一次再发
             if e.errno in (errno.EPIPE, errno.ECONNRESET, errno.ETIMEDOUT) or isinstance(e, BrokenPipeError):
                 self.close()
                 self._connect()
