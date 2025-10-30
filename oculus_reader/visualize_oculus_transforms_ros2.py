@@ -26,8 +26,8 @@ class OculusReaderNode(Node):
         self.last_time = self.clock.now()
 
         # subscriber
-        self.create_subscription(Float64MultiArray, '/L_haptic_intensity', self.left_haptic_callback, 10)
-        self.create_subscription(Float64MultiArray, '/R_haptic_intensity', self.right_haptic_callback, 10)
+        self.create_subscription(Float64MultiArray, '/L_haptic_amplitude', self.left_haptic_callback, 10)
+        self.create_subscription(Float64MultiArray, '/R_haptic_amplitude', self.right_haptic_callback, 10)
 
         # publisher
         self.robotiq_l = self.create_publisher(Float64MultiArray, '/L_gripper_forward_position_controller/commands', 10)
@@ -184,9 +184,6 @@ class OculusReaderNode(Node):
 
         if buttons['LG'] and not self.button_triggered_dict['LG']:
             self.button_triggered_dict['LG'] = True
-            msg = Float64MultiArray()
-            msg.data = [0.0]  # open
-            self.robotiq_l.publish(msg)
 
         elif not buttons['LG'] and self.button_triggered_dict['LG']:
             self.button_triggered_dict['LG'] = False
@@ -201,9 +198,7 @@ class OculusReaderNode(Node):
 
         if buttons['RG'] and not self.button_triggered_dict['RG']:
             self.button_triggered_dict['RG'] = True
-            msg = Float64MultiArray()
-            msg.data = [0.0]  # open
-            self.robotiq_r.publish(msg)
+            
         elif not buttons['RG'] and self.button_triggered_dict['RG']:
             self.button_triggered_dict['RG'] = False
 
@@ -218,6 +213,23 @@ class OculusReaderNode(Node):
                 self.get_logger().error('Service not available')
         elif buttons['rightJS'][0] < 0.2 and self.button_triggered_dict['rightJS']:
             self.button_triggered_dict['rightJS'] = False
+
+        # Using LeftGrasp control left gripper to  decrease accidental triggering
+        if buttons['leftGrip'][0] > 0.8 and not self.button_triggered_dict['leftGrip']:
+            self.button_triggered_dict['leftGrip'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.0]  # open
+            self.robotiq_l.publish(msg)
+        elif buttons['leftGrip'][0] < 0.2 and self.button_triggered_dict['leftGrip']:
+            self.button_triggered_dict['leftGrip'] = False
+        
+        if buttons['rightGrip'][0] > 0.8 and not self.button_triggered_dict['rightGrip']:
+            self.button_triggered_dict['rightGrip'] = True
+            msg = Float64MultiArray()
+            msg.data = [0.0]  # open
+            self.robotiq_r.publish(msg)
+        elif buttons['rightGrip'][0] < 0.2 and self.button_triggered_dict['rightGrip']:
+            self.button_triggered_dict['rightGrip'] = False
 
 
     def publish_transform(self, transform, name):
