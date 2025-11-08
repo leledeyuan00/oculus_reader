@@ -15,6 +15,7 @@ from rclpy.executors import SingleThreadedExecutor
 from threading import Thread
 
 import scipy
+from scipy.spatial import transform
 
 class OculusReaderNode(Node):
     def __init__(self):
@@ -251,9 +252,9 @@ class OculusReaderNode(Node):
         quat = np.array([quat[1], quat[0], -quat[2], quat[3]])
         
         # using scipy rotate quat as x 180 deg and y 90 deg
-        r = scipy.spatial.transform.Rotation.from_quat(quat)
-        r2 = scipy.spatial.transform.Rotation.from_euler('x', 180, degrees=True)
-        r3 = scipy.spatial.transform.Rotation.from_euler('y', -90, degrees=True)
+        r = transform.Rotation.from_quat(quat)
+        r2 = transform.Rotation.from_euler('x', 180, degrees=True)
+        r3 = transform.Rotation.from_euler('y', -90, degrees=True)
         r_final = r3 * r2 * r
         quat = r_final.as_quat()
        
